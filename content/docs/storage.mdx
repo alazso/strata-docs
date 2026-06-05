@@ -1,6 +1,6 @@
 ---
 title: "Storage"
-description: "Pooled SQLite/MySQL with a migration runner, and an optional Exposed/coroutines layer."
+description: "Pooled SQLite, MySQL, MariaDB, and PostgreSQL with a migration runner, and an optional Exposed/coroutines layer."
 ---
 
 `StorageProvider` owns the connection lifecycle and pooling for one plugin's database, plus its
@@ -10,11 +10,13 @@ use it with plain JDBC, and Kotlin consumers can layer Exposed on top of the sam
 ## Creating a provider
 
 Build a `StorageConfig` and create a provider from the factory. SQLite is the zero-config, file-based
-default; MySQL and MariaDB are also supported.
+default. MySQL, MariaDB, and PostgreSQL are also supported.
 
 ```java
 StorageConfig config = StorageConfig.sqlite(getDataFolder() + "/data.db");
 // or: StorageConfig.mysql("localhost", 3306, "mydb", "user", "pass");
+// or: StorageConfig.mariadb("localhost", 3306, "mydb", "user", "pass");
+// or: StorageConfig.postgres("localhost", 5432, "mydb", "user", "pass");
 
 StorageProvider storage = StrataApi.storage().create(config);
 
@@ -76,6 +78,7 @@ val total = storage.suspendTransaction { Accounts.selectAll().count() }
 ```
 
 <Callout type="info">
-  Backends supported today: **SQLite**, **MySQL**, and **MariaDB** (the MariaDB driver also connects
-  to MySQL). The JDBC drivers are runtime-loaded, so you don't bundle them.
+  Backends supported today: **SQLite**, **MySQL**, **MariaDB** (the MariaDB driver also connects
+  to MySQL), and **PostgreSQL** (default port 5432). The JDBC drivers are runtime-loaded, so you
+  don't bundle them.
 </Callout>

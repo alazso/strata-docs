@@ -8,7 +8,7 @@ const features = [
   },
   {
     title: 'Storage that shares',
-    body: 'Pooled SQLite/MySQL with a migration runner, plus one connection pool for the whole server instead of one per plugin.',
+    body: 'Pooled SQLite, MySQL, MariaDB, and PostgreSQL with a migration runner, plus one connection pool for the whole server instead of one per plugin.',
   },
   {
     title: 'Integrations, abstracted',

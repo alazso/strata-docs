@@ -19,7 +19,7 @@ It runs as a **standalone server plugin** (so shared state like a connection poo
     The Folia-safe `PlatformScheduler`, so you never touch `Bukkit.getScheduler()` again.
   </Card>
   <Card title="Store data" href="/docs/storage">
-    Pooled SQLite/MySQL with a migration runner, plus an Exposed and coroutines layer.
+    Pooled SQLite, MySQL, MariaDB, and PostgreSQL with a migration runner, plus an Exposed and coroutines layer.
   </Card>
   <Card title="Integrate plugins" href="/docs/hooks">
     Permissions, economy, regions, items, and holograms behind one degrade-gracefully API.
@@ -62,7 +62,7 @@ EconomyHook eco = StrataApi.hooks().get(EconomyHook.class); // null-safe if abse
 | --- | --- |
 | **Scheduler** | Folia-safe wrapper over Region/Global/Async/Entity schedulers |
 | **Text** | MiniMessage plus PlaceholderAPI in the correct resolution order |
-| **Storage** | Pooled SQLite/MySQL, a migration runner, optional Exposed/coroutines |
+| **Storage** | Pooled SQLite, MySQL, MariaDB, and PostgreSQL, a migration runner, optional Exposed/coroutines |
 | **PDC** | Typed `PdcKey<P, C>` read/write over PersistentDataContainer |
 | **Config** | A schema validator with rich errors and deprecation warnings |
 | **Hooks** | Permission / Economy / Region / Item / Hologram behind one registry |
