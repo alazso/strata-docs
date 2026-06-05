@@ -1,0 +1,47 @@
+---
+title: "Cooldowns"
+description: "A keyed, thread-safe cooldown manager."
+---
+
+`CooldownManager` tracks keyed cooldowns. Keys are any object with sensible `equals`/`hashCode`,
+typically a player UUID, or a composite of UUID and action. It's pure API and thread-safe, and each
+plugin keeps its own instance(s), so cooldowns are isolated.
+
+```java
+CooldownManager cooldowns = Cooldowns.create();
+
+// Start a cooldown:
+cooldowns.set(player.getUniqueId(), Duration.ofSeconds(30));
+
+// Check it:
+if (cooldowns.isOnCooldown(player.getUniqueId())) {
+    long secondsLeft = cooldowns.remainingMillis(player.getUniqueId()) / 1000;
+    player.sendMessage("Wait " + secondsLeft + "s");
+    return;
+}
+```
+
+## API
+
+```java
+cooldowns.set(key, Duration.ofMinutes(5));
+cooldowns.setMillis(key, 5000);
+boolean active = cooldowns.isOnCooldown(key);
+long ms = cooldowns.remainingMillis(key);      // 0 if not on cooldown
+Duration left = cooldowns.remaining(key);
+cooldowns.clear(key);
+cooldowns.clearAll();
+```
+
+Composite keys keep separate cooldowns per action:
+
+```java
+record CooldownKey(UUID player, String action) {}
+
+cooldowns.set(new CooldownKey(id, "open-crate"), Duration.ofSeconds(10));
+cooldowns.set(new CooldownKey(id, "claim-reward"), Duration.ofHours(24));
+```
+
+<Callout type="info">
+  `Cooldowns.create(LongSupplier clock)` accepts a custom millisecond clock, which is handy for tests.
+</Callout>

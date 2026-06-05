@@ -1,0 +1,51 @@
+---
+title: "Text"
+description: "MiniMessage and PlaceholderAPI rendering, in the correct resolution order."
+---
+
+`TextRenderer` turns MiniMessage strings (with RGB, gradients, and PlaceholderAPI support) into
+Adventure `Component`s. It bakes in the one detail that bites everyone:
+
+<Callout type="warn">
+  **PlaceholderAPI is resolved *first*, then the result is parsed as MiniMessage.** Doing it the
+  other way lets placeholder output be reinterpreted as markup, which is a real class of bug. Strata
+  encodes the correct order once so no plugin can reintroduce it.
+</Callout>
+
+When PlaceholderAPI isn't installed (or a placeholder misbehaves) the placeholder pass is skipped
+gracefully and MiniMessage parsing proceeds unchanged.
+
+```java
+TextRenderer text = StrataApi.text();
+
+// Plain MiniMessage (no placeholders):
+Component title = text.render("<gradient:#34d399:#065f46>Strata</gradient>");
+
+// Resolve %placeholders% against a viewer, then parse MiniMessage:
+Component greeting = text.render("<gray>Welcome, <white>%player_name%", player);
+
+// Many lines at once:
+List<Component> lore = text.render(List.of("<red>Line one", "<gray>Line two"), player);
+```
+
+## Custom tags
+
+Pass Adventure `TagResolver`s for one-off placeholders without registering anything:
+
+```java
+Component msg = text.render(
+    "<gray>You earned <reward>!", player,
+    Placeholder.parsed("reward", "100 coins"));
+```
+
+## Raw placeholder resolution
+
+When you only need the resolved string (for example to compare a placeholder's value), use `resolve`.
+It runs PlaceholderAPI without MiniMessage parsing, and returns the input unchanged if PAPI is absent
+or the viewer is `null`:
+
+```java
+String balance = text.resolve("%vault_eco_balance%", player);
+```
+
+This is exactly what the [`papi` condition](/docs/conditions) uses under the hood.

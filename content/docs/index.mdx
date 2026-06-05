@@ -1,0 +1,75 @@
+---
+title: "Strata"
+description: "Shared storage, utilities, and a Java-friendly API for Paper/Folia plugins."
+---
+
+Strata is a shared library plugin for the alazso Minecraft plugin ecosystem. It gives every dependent plugin one battle-tested set of building blocks (a Folia-safe scheduler, a pooled storage layer, typed PDC, a hook/integration system, conditions, GUIs, commands, and metrics) instead of each plugin re-implementing them.
+
+<LatestVersion />
+
+It runs as a **standalone server plugin** (so shared state like a connection pool lives in a single classloaded instance) and publishes a thin, **Java-friendly** API artifact that your plugins compile against.
+
+## Pick your path
+
+<Cards>
+  <Card title="Get started" href="/docs/getting-started">
+    Add Strata as a dependency, declare it in your `paper-plugin.yml`, and reach the API.
+  </Card>
+  <Card title="Schedule safely" href="/docs/scheduler">
+    The Folia-safe `PlatformScheduler`, so you never touch `Bukkit.getScheduler()` again.
+  </Card>
+  <Card title="Store data" href="/docs/storage">
+    Pooled SQLite/MySQL with a migration runner, plus an Exposed and coroutines layer.
+  </Card>
+  <Card title="Integrate plugins" href="/docs/hooks">
+    Permissions, economy, regions, items, and holograms behind one degrade-gracefully API.
+  </Card>
+  <Card title="Build GUIs" href="/docs/gui">
+    Holder-identified chest menus, pagination, anvil/chat input, and declarative actions.
+  </Card>
+  <Card title="Register commands" href="/docs/commands">
+    A fluent Brigadier wrapper with ready-made reload/give/take and debug subcommands.
+  </Card>
+</Cards>
+
+## Why a plugin, not a shaded dependency?
+
+The shared `StorageProvider` and other stateful services must live in a **single** classloaded instance. Shading Strata into every consumer would give each plugin its own isolated copy, breaking shared state. So Strata follows the same model as Vault, LuckPerms, and PlaceholderAPI: install it once on the server, and your plugins depend on it.
+
+Two artifacts ship from one build:
+
+```
+strata-<version>.jar        server plugin, install in /plugins (heavy deps runtime-loaded)
+strata-api-<version>.jar     compile-time API, published to repo.alaz.so
+```
+
+Heavy runtime libraries (Kotlin stdlib, coroutines, Exposed, HikariCP, JDBC drivers) are **runtime-loaded** by Paper's library loader, so server owners install nothing extra and the plugin jar stays small.
+
+## Java-friendly by design
+
+Strata is written in Kotlin but its public surface is authored for **pure-Java consumers**: async APIs return `CompletableFuture` (no coroutine machinery leaks), `@JvmStatic`/`@JvmOverloads` where it helps, and no Kotlin-only types in public signatures. You ship no `kotlin-stdlib` of your own, because it resolves at runtime through Strata.
+
+```java
+// From any plugin that hard-depends on Strata:
+StrataApi.scheduler(this).async(() -> doWork());
+TextRenderer text = StrataApi.text();
+EconomyHook eco = StrataApi.hooks().get(EconomyHook.class); // null-safe if absent
+```
+
+## What's inside
+
+| Area | What you get |
+| --- | --- |
+| **Scheduler** | Folia-safe wrapper over Region/Global/Async/Entity schedulers |
+| **Text** | MiniMessage plus PlaceholderAPI in the correct resolution order |
+| **Storage** | Pooled SQLite/MySQL, a migration runner, optional Exposed/coroutines |
+| **PDC** | Typed `PdcKey<P, C>` read/write over PersistentDataContainer |
+| **Config** | A schema validator with rich errors and deprecation warnings |
+| **Hooks** | Permission / Economy / Region / Item / Hologram behind one registry |
+| **Conditions** | Config-driven predicates (permission, economy, region, and more) |
+| **Cooldowns** | Keyed, thread-safe cooldown manager |
+| **GUI** | Holder-based chest menus, pagination, anvil/chat input |
+| **Commands** | Fluent Brigadier builder plus common and debug subcommands |
+| **Metrics** | bStats and FastStats (shaded, relocated) behind one wrapper |
+
+New here? Head to [Getting Started](/docs/getting-started).

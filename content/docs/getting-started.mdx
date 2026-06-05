@@ -1,0 +1,99 @@
+---
+title: "Getting Started"
+description: "Add Strata as a dependency, declare it, and reach the API."
+---
+
+Strata is installed **once on the server** and your plugin depends on it, the same model as Vault,
+LuckPerms, or PlaceholderAPI. You compile against the thin `strata-api` artifact and call into the
+running Strata plugin at runtime.
+
+## 1. Install the server plugin
+
+Download `strata-<version>.jar` from the [GitHub releases](https://github.com/alazso/strata/releases)
+and drop it in `/plugins`. The heavy runtime libraries (Kotlin stdlib, coroutines, Exposed, HikariCP,
+JDBC drivers) are downloaded automatically by Paper's library loader on first start, so server owners
+install nothing else.
+
+## 2. Depend on the API
+
+Add the alazso Maven repository and the `strata-api` artifact (compile-time only).
+
+```kotlin tab="build.gradle.kts"
+repositories {
+    maven("https://repo.alaz.so/releases") { name = "alazso" }
+}
+
+dependencies {
+    compileOnly("so.alaz.strata:strata-api:STRATA_VERSION")
+}
+```
+
+```xml tab="pom.xml"
+<repositories>
+  <repository>
+    <id>alazso</id>
+    <url>https://repo.alaz.so/releases</url>
+  </repository>
+</repositories>
+
+<dependency>
+  <groupId>so.alaz.strata</groupId>
+  <artifactId>strata-api</artifactId>
+  <version>STRATA_VERSION</version>
+  <scope>provided</scope>
+</dependency>
+```
+
+You ship **no** `kotlin-stdlib` of your own, because it resolves at runtime through Strata's
+classloader.
+
+## 3. Declare the dependency
+
+Strata loads at the `STARTUP` phase, so declare it as a required server dependency that loads first.
+
+```yaml title="paper-plugin.yml"
+dependencies:
+  server:
+    Strata:
+      load: BEFORE
+      required: true
+```
+
+## 4. Use the API
+
+Everything is reached through `StrataApi`. It's available once Strata has enabled, which your
+`BEFORE`/`required` dependency guarantees.
+
+```java
+import so.alaz.strata.api.StrataApi;
+import so.alaz.strata.api.hook.EconomyHook;
+
+public final class MyPlugin extends JavaPlugin {
+    @Override
+    public void onEnable() {
+        // Folia-safe scheduling, bound to your plugin:
+        StrataApi.scheduler(this).async(() -> getLogger().info("off-thread work"));
+
+        // Best-available economy provider, or null if none is installed:
+        EconomyHook eco = StrataApi.hooks().get(EconomyHook.class);
+    }
+}
+```
+
+`StrataApi.isAvailable()` returns `false` before Strata has enabled, which is handy for optional
+soft-dependencies.
+
+## What's reachable from `StrataApi`
+
+| Accessor | Page |
+| --- | --- |
+| `scheduler(plugin)` | [Scheduler](/docs/scheduler) |
+| `text()` | [Text](/docs/text) |
+| `storage()` | [Storage](/docs/storage) |
+| `hooks()` | [Hooks](/docs/hooks) |
+| `metrics()` | [Metrics](/docs/metrics) |
+| `conditions()` | [Conditions](/docs/conditions) |
+| `gui()` | [GUI](/docs/gui) |
+
+Plus pure-API helpers you construct directly: `PdcKey`, `ConfigSchema`, `Cooldowns`, `ItemBuilder`,
+and the `StrataCommand` builder.

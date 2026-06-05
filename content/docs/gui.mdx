@@ -1,0 +1,79 @@
+---
+title: "GUI"
+description: "Holder-identified chest menus, pagination, anvil/chat input, and declarative actions."
+---
+
+`StrataApi.gui()` is a `GuiManager` for inventory menus. Inventories are identified by a Strata
+`InventoryHolder`, **never by title** (which is unreliable), and all click/drag/close events route
+through Strata with the safety guards built in. Clicks on a menu are always cancelled (so shift-click,
+hotbar/offhand swaps, and double-click-collect can't move items), and drags into a menu are blocked.
+
+## A chest menu
+
+```java
+ItemStack icon = new ItemBuilder(Material.EMERALD).name("<b>Buy").glow(true).build();
+
+Gui gui = ChestGui.builder(3)
+    .title("<gradient:#34d399:#065f46>Shop")
+    .button(13, Button.of(icon, click -> {
+        buy(click.getPlayer());
+        return GuiAction.close().withSound(Sound.sound(Key.key("ui.button.click"), Source.MASTER, 1f, 1f));
+    }))
+    .build();
+
+StrataApi.gui().open(gui, player); // call on the player's thread
+```
+
+A click handler returns a declarative `GuiAction`: `none()`, `close()`, `refresh()`, or `open(gui)`,
+each chainable with `.withSound(...)` and `.withMessage(...)`.
+
+## Builders
+
+| Builder | Use |
+| --- | --- |
+| `ChestGui` | static buttons; `pattern("#...")` plus `define('#', button)` mask layout |
+| `PaginatedGui` | a flat content list across pages with built-in prev/next nav |
+| `ScrollGui` | row-by-row vertical scrolling |
+| `ConfirmGui` | a one-call yes/no menu |
+| `ItemBuilder` / `LoreBuilder` | MiniMessage items (italics stripped), glow |
+
+Page and scroll state live in the `GuiSession`, so one `PaginatedGui` instance serves many viewers
+independently. A `Gui.render(session)` returns the slot to `Button` map for the current frame.
+
+```java
+Gui menu = PaginatedGui.builder(6)
+    .title("Items")
+    .content(buttons)                       // any number of buttons
+    .contentSlots(IntStream.range(0, 45).boxed().toList())
+    .navigation(48, 50, prevIcon, nextIcon)
+    .build();
+```
+
+## Text input
+
+Beyond inventories, Strata drives anvil and chat input through the same manager.
+
+```java
+// Anvil text input (AnvilGUI-style):
+AnvilPrompt prompt = AnvilPrompt.builder()
+    .title("<gray>Enter a name")
+    .text("default")
+    .onComplete((p, input) -> input.isBlank()
+        ? AnvilResponse.keepOpen()                 // invalid: keep the anvil open
+        : finish(p, input))                        // returns AnvilResponse.close()
+    .build();
+StrataApi.gui().openAnvil(prompt, player);
+
+// Chat input fallback:
+StrataApi.gui().openChat(ChatPrompt.builder()
+    .prompt(Component.text("Type a value, or 'cancel'."))
+    .onInput((p, line) -> { save(p, line); return ChatResponse.end(); })
+    .build(), player);
+```
+
+`BookView.open(player, title, author, pages)` opens a read-only book surface.
+
+<Callout type="info">
+  A refresh re-renders items only. Bukkit fixes the inventory title at creation, so changing the
+  title means reopening.
+</Callout>

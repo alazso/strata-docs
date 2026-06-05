@@ -1,0 +1,37 @@
+name: Build & Push Docs Image
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  packages: write
+# GitHub deprecated Node 20 on runners. checkout is bumped to a Node 24 native
+# major; this env var forces the docker/* JS actions onto Node 24 until Docker
+# ships Node 24 native releases, which silences the deprecation warning.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: ver
+        name: Resolve Strata versions
+        run: |
+          STABLE=$(curl -sSL https://api.github.com/repos/alazso/strata/releases/latest | jq -r '.tag_name // empty' | sed 's/^v//' || true)
+          SNAP=$(curl -sSL https://raw.githubusercontent.com/alazso/strata/main/gradle.properties | sed -n 's/^version=//p' | tr -d '[:space:]' || true)
+          echo "stable=$STABLE" >> "$GITHUB_OUTPUT"
+          echo "snapshot=$SNAP" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: |
+            STRATA_VERSION=${{ steps.ver.outputs.stable }}
+            STRATA_SNAPSHOT_VERSION=${{ steps.ver.outputs.snapshot }}
+          tags: ghcr.io/alazso/strata-docs:latest

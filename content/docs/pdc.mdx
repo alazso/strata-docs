@@ -1,0 +1,43 @@
+---
+title: "PDC Helpers"
+description: "Typed read/write over PersistentDataContainer, without the casting boilerplate."
+---
+
+`PdcKey<P, C>` is a typed wrapper over a single `PersistentDataContainer` key. It removes the raw-key
+boilerplate and unchecked casting that PDC access otherwise requires. `P` is the primitive storage
+type and `C` the complex (API) type, matching Bukkit's `PersistentDataType`.
+
+```java
+// Define your keys once (statics are ideal):
+static final PdcKey<String, String> ID =
+    new PdcKey<>(new NamespacedKey(plugin, "id"), PersistentDataType.STRING);
+static final PdcKey<Integer, Integer> USES =
+    new PdcKey<>(new NamespacedKey(plugin, "uses"), PersistentDataType.INTEGER);
+```
+
+## Reading and writing
+
+Every method has both a `PersistentDataHolder` overload (items, entities, tile states, and so on) and
+a raw `PersistentDataContainer` overload.
+
+```java
+ItemMeta meta = item.getItemMeta();
+
+ID.set(meta, "abc-123");
+USES.set(meta, 5);
+
+String id = ID.get(meta);                 // null if absent
+int uses = USES.getOrDefault(meta, 0);
+boolean tagged = ID.has(meta);
+ID.remove(meta);
+
+item.setItemMeta(meta); // remember to persist meta back onto the item
+```
+
+<Callout type="info">
+  Writes mutate the holder's container in place. For `ItemMeta` you still call
+  `ItemStack#setItemMeta`, and for tile entities `TileState#update()`.
+</Callout>
+
+`PdcKey` is pure API, so you construct it directly with no `StrataApi` lookup. It's used across
+alazso plugins for key systems, anti-dupe stamping, and pending-prize storage.

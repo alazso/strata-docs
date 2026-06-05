@@ -1,0 +1,46 @@
+---
+title: "Config Validation"
+description: "A schema validator with rich, path-specific errors and deprecation warnings."
+---
+
+`ConfigSchema` validates a Bukkit `ConfigurationSection` against a declarative schema and returns a
+`ValidationResult` with rich, path-specific messages. Fail loud on malformed input, and warn (without
+failing) on deprecated keys.
+
+## Defining a schema
+
+```java
+ConfigSchema schema = ConfigSchema.builder()
+    .require("database.type", ValueType.STRING)
+    .optional("database.pool-size", ValueType.INT)
+    .intRange("database.pool-size", 1, 100)
+    .deprecated("mysql-host", "database.host")   // old key -> suggested replacement
+    .build();
+```
+
+Supported value types: `STRING`, `INT`, `LONG`, `DOUBLE`, `BOOLEAN`, `LIST`, `SECTION`. Constrain
+numbers with `intRange` or `doubleRange`.
+
+## Validating
+
+```java
+ValidationResult result = schema.validate(getConfig());
+
+for (String warning : result.warnings()) getLogger().warning(warning);
+
+if (!result.isValid()) {
+    result.errors().forEach(e -> getLogger().severe(e));
+    result.throwIfInvalid(); // throws ConfigValidationException, failing the enable
+}
+```
+
+A run produces messages like:
+
+```
+Missing required key 'database.type' (expected string)
+Key 'database.pool-size' must be between 1 and 100 (was 999)
+Key 'mysql-host' is deprecated; use 'database.host' instead   (warning)
+```
+
+`ConfigSchema` is pure API, so you build it directly with no `StrataApi` lookup. Each plugin keeps
+its own schema, and the validation framework is shared.

@@ -1,0 +1,93 @@
+---
+title: "Metrics"
+description: "bStats and FastStats behind one wrapper, shaded and relocated inside Strata."
+---
+
+`StrataApi.metrics()` wraps **bStats** and **FastStats**. Both libraries are shaded and relocated
+inside Strata, so your plugin doesn't shade its own copy. You just provide your id/token and any
+custom charts.
+
+```java
+Metrics metrics = StrataApi.metrics().create(this)
+    .enable(MetricProvider.BSTATS, "12345")            // bStats service id
+    .enable(MetricProvider.FASTSTATS, "project-token") // FastStats project token
+    .addChart(MetricChart.string("storage_backend", () -> backend.name()))
+    .addChart(MetricChart.number("loaded_regions", () -> regions.size()))
+    .start();
+
+// On disable:
+metrics.shutdown();
+```
+
+Enable either provider, or both. A `MetricChart` is provider-agnostic, so Strata routes each
+definition to the matching native chart on every enabled backend.
+
+| Chart | bStats | FastStats |
+| --- | --- | --- |
+| `MetricChart.string` | SimplePie | string metric |
+| `MetricChart.number` | SingleLineChart | number metric |
+| `MetricChart.bool` | SimplePie | bool metric |
+| `MetricChart.stringList` | AdvancedPie | string-array metric |
+
+## Error tracking (FastStats)
+
+FastStats can also report anonymized errors. Enable it with Strata's default anonymizers, which
+scrub emails, tokens, UUIDs, JDBC URLs, SQL, and filesystem paths before anything leaves the server,
+and layer your own rules on top.
+
+```java
+StrataApi.metrics().create(this)
+    .enable(MetricProvider.FASTSTATS, "project-token")
+    .errorTracking(true)
+    .addAnonymization("player-\\d+", "[player hidden]")
+    .ignoreError(IllegalStateException.class)
+    .start();
+```
+
+`addAnonymization` and `ignoreError` implicitly enable error tracking.
+
+## Feature flags (FastStats)
+
+FastStats can also serve **remote feature flags**: a flag is declared with a local default, and that
+default is the contract. If FastStats is disabled, unreachable, or has no value for a flag, reads
+return the local default. This gives you a remote kill switch and remote tuning for code that is
+already deployed, with no update to push.
+
+Declare flags on the builder, then read them off the started handle:
+
+```java
+Metrics m = StrataApi.metrics().create(this)
+    .enable(MetricProvider.FASTSTATS, "project-token")
+    .defineFlag("new_gui", false)        // key plus local default (the fallback)
+    .defineFlag("max_crates", 10.0)
+    .flagTtl(Duration.ofMinutes(10))
+    .flagAttribute("version", "1.2.3")   // global targeting attribute
+    .start();
+
+FeatureFlags flags = m.featureFlags();
+```
+
+Read from the cache on any hot path. `getBoolean`, `getString`, `getDouble`, and `getInt` never touch
+the network, so they are safe per-tick, per-click, or per-event:
+
+```java
+if (flags.getBoolean("new_gui")) openNewGui(player);
+int cap = flags.getInt("max_crates");
+```
+
+When you explicitly want a fresh value, fetch it off-thread:
+
+```java
+flags.fetchBoolean("new_gui").thenAccept(enabled -> applyAsync(enabled));
+```
+
+<Callout type="info">
+  Feature flags require FastStats. Without it, `featureFlags()` returns a defaults-only view, so your
+  declared defaults still apply and nothing needs a null check. `isRemote()` reports whether a live
+  FastStats context is backing the flags.
+</Callout>
+
+<Callout type="info">
+  gson is **not** bundled, because Paper provides it at runtime. Only the small bStats/FastStats
+  libraries are shaded (and relocated), which keeps the Strata jar lean.
+</Callout>

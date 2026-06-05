@@ -1,0 +1,21 @@
+{
+  "title": "Strata",
+  "pages": [
+    "index",
+    "getting-started",
+    "---Core---",
+    "scheduler",
+    "text",
+    "storage",
+    "pdc",
+    "config",
+    "---Integrations---",
+    "hooks",
+    "metrics",
+    "---Gameplay---",
+    "conditions",
+    "cooldowns",
+    "gui",
+    "commands"
+  ]
+}

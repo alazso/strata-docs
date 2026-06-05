@@ -1,0 +1,76 @@
+---
+title: "Conditions"
+description: "Config-driven predicates with failure messages, the shared eligibility system."
+---
+
+A condition is a predicate over a player (and location/extras) that passes, or fails with a message.
+The same `permission / world / region / rank / economy` pattern shows up in crate eligibility,
+voucher redemption, reward gating, and more. So Strata builds it once as a `Condition` interface and
+registry, and your plugin just reads conditions from config.
+
+## Config-driven
+
+Each condition is a section with a `type`, type-specific keys, and an optional `deny` message
+(MiniMessage, rendered against the failing player so it supports formatting and placeholders).
+
+```yaml
+conditions:
+  - { type: economy, amount: 100, deny: "<red>You need $100." }
+  - { type: permission, permission: "crates.open", deny: "<red>No access." }
+  - { type: world, worlds: [world, world_nether] }
+  - { type: rank, groups: [vip, mvp] }
+  - { type: region, regions: [spawn] }
+```
+
+```java
+List<Condition> conditions =
+    StrataApi.conditions().buildFromMaps(getConfig().getMapList("conditions"));
+
+ConditionResult result = Conditions.testAll(conditions, ConditionContext.of(player));
+if (!result.passed()) {
+    player.sendMessage(result.message()); // the first failure's deny message
+    return;
+}
+```
+
+`testAll` uses AND semantics and returns the **first** failure so you can show its message.
+
+## Built-in types
+
+| Type | Keys | Notes |
+| --- | --- | --- |
+| `permission` | `permission` | Bukkit-native or a [PermissionHook](/docs/hooks) |
+| `world` | `worlds` | |
+| `gamemode` | `gamemodes` | |
+| `exp` | `level` | player level at least the value |
+| `expiry` | `expires` | epoch millis, ISO instant, or `yyyy-MM-dd` |
+| `owner` | (none) | player equals the context `owner` extra |
+| `economy` | `amount` | via `EconomyHook` |
+| `rank` | `groups` | via group-aware `PermissionHook` |
+| `region` | `regions` | via `RegionHook` |
+| `papi` | `placeholder`, `operator`, `value` | compares resolved PlaceholderAPI output |
+| `playerstat` | `statistic`, `operator`, `value` | block/item/entity statistics supported |
+
+Hook-backed conditions (`economy`, `rank`, `region`) **deny gracefully** when their hook is absent.
+
+## Custom conditions
+
+Register your own type with a factory that reads the config section:
+
+```java
+StrataApi.conditions().register("near-spawn", section -> ctx -> {
+    double max = section.getDouble("distance", 50);
+    boolean ok = ctx.player().getLocation().distance(spawn) <= max;
+    return ok ? ConditionResult.pass()
+              : ConditionResult.fail(Component.text("Too far from spawn"));
+});
+```
+
+`ConditionContext` carries the player, a location, and caller-supplied extras (for example an
+`owner` UUID for the `owner` condition):
+
+```java
+ConditionContext ctx = ConditionContext.builder(player)
+    .extra("owner", crate.getOwner())
+    .build();
+```

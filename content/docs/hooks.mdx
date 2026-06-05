@@ -1,0 +1,62 @@
+---
+title: "Hooks"
+description: "Permissions, economy, regions, items, and holograms behind one degrade-gracefully registry."
+---
+
+The hook layer lets your plugin use third-party integrations **without depending on them**. You call
+a Strata interface; Strata owns the adapter, detects availability, and degrades gracefully when the
+backing plugin is absent. Direct internal calls are exactly what breaks when an integration changes,
+so the abstraction is the fix.
+
+## Resolving a hook
+
+`StrataApi.hooks()` is a `HookRegistry`. `get(type)` returns the best **available** provider for a
+capability, or `null` when none are present, so callers degrade instead of crashing.
+
+```java
+EconomyHook eco = StrataApi.hooks().get(EconomyHook.class);
+if (eco == null) return;                 // no economy installed, degrade
+if (eco.has(player, price)) eco.withdraw(player, price);
+```
+
+| Capability | Interface | Resolves to |
+| --- | --- | --- |
+| Permissions / groups | `PermissionHook` | Bukkit-native, LuckPerms |
+| Economy | `EconomyHook` | Vault (your own plugin can self-register) |
+| Regions | `RegionHook` | WorldGuard, claim plugins |
+| Custom items | `ItemHook` | Oraxen, ItemAdder |
+| Holograms | `HologramHook` | DecentHolograms, FancyHolograms, CMI |
+
+The permission hook always answers `has(player, node)` (Bukkit-native), and richer providers add
+groups, prefix, and meta on top.
+
+## Registering your own provider
+
+If you write a plugin that *provides* a capability (say, your own economy plugin), don't make Strata
+depend on it. Have it **self-register** on enable:
+
+```kotlin
+// In your plugin's onEnable, after Strata is enabled:
+StrataApi.hooks().register(EconomyHook::class.java, MyEconomyHook(), priority = 100)
+```
+
+Strata stays agnostic, and the registry resolves between providers automatically.
+
+## Preference (non-interchangeable providers)
+
+Economy backends are *different money stores*, so when two are present the admin must choose which is
+authoritative, because Strata doesn't guess. `setPreference` honors a configured provider name
+(matched case-insensitively against `Hook.name()`) when available, falling back to priority
+otherwise.
+
+```java
+StrataApi.hooks().setPreference(EconomyHook.class, "vault");
+```
+
+Strata applies this from its own `config.yml` (`economy.provider`) on enable.
+
+<Callout type="info">
+  Adapters hold **no** third-party fields, only a presence flag, and they wrap all third-party calls.
+  So a hook loads and registers fine even when its plugin isn't installed, and reports
+  `isAvailable()` as `false` instead of throwing.
+</Callout>

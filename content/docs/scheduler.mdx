@@ -1,0 +1,56 @@
+---
+title: "Scheduler"
+description: "A Folia-safe scheduling abstraction over Paper's region-threaded schedulers."
+---
+
+`PlatformScheduler` is the single sanctioned way to schedule work in a Strata plugin. It wraps
+Paper's Region, Global, Async, and Entity schedulers, so the same code behaves identically on Paper
+and Folia. **Never call `Bukkit.getScheduler()` again.**
+
+Get one bound to your plugin (so its tasks are owned by, and cancelled with, your plugin):
+
+```java
+PlatformScheduler scheduler = StrataApi.scheduler(this);
+```
+
+## Scheduling work
+
+Tick-based delays are in server ticks (20/sec); async delays are in milliseconds.
+
+```java
+// Global region (main-thread-equivalent work not tied to a location)
+scheduler.global(() -> broadcast("tick"));
+scheduler.globalLater(20, () -> broadcast("one second later"));
+scheduler.globalTimer(0, 20, () -> broadcast("every second"));
+
+// Region (work that owns a world location)
+scheduler.region(location, () -> location.getBlock().setType(Material.STONE));
+
+// Entity (work that follows an entity across regions)
+scheduler.entity(player, () -> player.setHealth(20.0));
+scheduler.entity(player, () -> teleport(player), () -> {/* retired: entity gone */});
+
+// Async (off the server threads entirely)
+scheduler.async(() -> callExternalApi());
+scheduler.asyncLater(500, () -> retry());
+scheduler.asyncTimer(0, 60_000, () -> heartbeat());
+```
+
+Every call returns a `StrataTask`:
+
+```java
+StrataTask task = scheduler.globalTimer(0, 20, this::countdown);
+if (someCondition) task.cancel();
+boolean done = task.isCancelled();
+```
+
+## Why bound to your plugin?
+
+Because Folia's schedulers attribute tasks to an owning plugin, `StrataApi.scheduler(plugin)` returns
+a scheduler bound to *your* plugin. That means your repeating tasks are cancelled automatically when
+your plugin disables, not when Strata disables. Strata caches one scheduler per plugin, so calling
+`scheduler(this)` repeatedly is cheap.
+
+<Callout type="info">
+  Tick delays and periods are coerced to a minimum of 1, since Paper rejects values below 1 tick.
+</Callout>

@@ -1,0 +1,81 @@
+---
+title: "Storage"
+description: "Pooled SQLite/MySQL with a migration runner, and an optional Exposed/coroutines layer."
+---
+
+`StorageProvider` owns the connection lifecycle and pooling for one plugin's database, plus its
+migration runner. The pooled `javax.sql.DataSource` is the universal access primitive. Java consumers
+use it with plain JDBC, and Kotlin consumers can layer Exposed on top of the same provider.
+
+## Creating a provider
+
+Build a `StorageConfig` and create a provider from the factory. SQLite is the zero-config, file-based
+default; MySQL and MariaDB are also supported.
+
+```java
+StorageConfig config = StorageConfig.sqlite(getDataFolder() + "/data.db");
+// or: StorageConfig.mysql("localhost", 3306, "mydb", "user", "pass");
+
+StorageProvider storage = StrataApi.storage().create(config);
+
+storage.init().thenRun(() -> getLogger().info("storage ready"));   // during enable
+// ... later, during disable:
+storage.shutdown();
+```
+
+`init()` and `shutdown()` return `CompletableFuture<Void>` and run off the main thread on a dedicated
+pool thread, so they never freeze the server.
+
+## Migrations
+
+Register `Migration`s (each is an increasing version with a plain-JDBC `up(Connection)`) and run
+them. Applied versions are tracked in a `strata_schema_version` table, and each migration runs in its
+own transaction.
+
+```java
+storage.migrations()
+    .register(new Migration() {
+        public int version() { return 1; }
+        public String description() { return "create accounts"; }
+        public void up(Connection c) throws Exception {
+            try (var st = c.createStatement()) {
+                st.executeUpdate("CREATE TABLE accounts(uuid TEXT PRIMARY KEY, balance INTEGER)");
+            }
+        }
+    });
+
+storage.migrations().migrate().thenAccept(applied ->
+    getLogger().info("applied " + applied + " migration(s)"));
+```
+
+## Using the data source
+
+```java
+try (Connection c = storage.dataSource().getConnection();
+     PreparedStatement ps = c.prepareStatement("SELECT balance FROM accounts WHERE uuid = ?")) {
+    ps.setString(1, uuid.toString());
+    // ...
+}
+```
+
+Do this on an async thread with `StrataApi.scheduler(plugin).async(...)`.
+
+## Kotlin: Exposed and coroutines
+
+For Kotlin consumers, Strata ships an additive Exposed/coroutines layer over the same provider. It's
+opt-in sugar, and Java consumers ignore it.
+
+```kotlin
+// Blocking:
+storage.transaction {
+    Accounts.insert { it[uuid] = id.toString(); it[balance] = 100 }
+}
+
+// Suspended (Dispatchers.IO):
+val total = storage.suspendTransaction { Accounts.selectAll().count() }
+```
+
+<Callout type="info">
+  Backends supported today: **SQLite**, **MySQL**, and **MariaDB** (the MariaDB driver also connects
+  to MySQL). The JDBC drivers are runtime-loaded, so you don't bundle them.
+</Callout>

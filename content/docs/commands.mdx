@@ -1,0 +1,71 @@
+---
+title: "Commands"
+description: "A fluent Brigadier wrapper, plus ready-made common and debug subcommands."
+---
+
+`StrataCommand` is a fluent builder over Paper's modern Brigadier command API. It hides the
+Mojang/Brigadier generics while keeping tab-completion and argument parsing, and it's pure API, so
+there's no service to look up.
+
+## Building a command
+
+```java
+StrataCommand.literal("myplugin")
+    .permission("myplugin.admin")
+    .executes(ctx -> ctx.reply("<aqua>MyPlugin"))
+    .then(StrataCommand.literal("give")
+        .then(StrataCommand.argument("target", ArgType.player())
+            .then(StrataCommand.argument("amount", ArgType.integer(1, 64))
+                .executes(ctx -> give(ctx.getPlayer("target"), ctx.getInt("amount"))))))
+    .register(this, "My plugin command", List.of("mp")); // call during onEnable
+```
+
+`register` wires Paper's command lifecycle for you. Build literals and arguments with `then`, set
+`permission`s and `executes` handlers, and read parsed values from the `CommandContext`.
+
+### Argument types
+
+`ArgType.word()`, `string()`, `greedyString()`, `integer()` or `integer(min, max)`, `decimal()`,
+`bool()`, and `player()`.
+
+### Command context
+
+```java
+CommandSender sender = ctx.sender();
+Player player = ctx.player();              // null if not a player
+String name = ctx.getString("name");
+int amount = ctx.getInt("amount");
+Player target = ctx.getPlayer("target");   // from an ArgType.player() argument
+ctx.reply("<green>Done");                  // MiniMessage, or reply(Component)
+```
+
+## Common patterns
+
+`CommonCommands` provides the subcommands every plugin repeats:
+
+```java
+.then(CommonCommands.reload("myplugin.reload", this::reloadConfig))
+.then(CommonCommands.give("myplugin.give", (ctx, target, amount) -> giveKey(target, amount)))
+.then(CommonCommands.take("myplugin.take", (ctx, target, amount) -> takeKey(target, amount)))
+```
+
+## Debug subcommands
+
+`DebugCommands` introspects the Strata subsystems your plugin uses. Attach the relevant ones under a
+`debug` literal:
+
+```java
+.then(StrataCommand.literal("debug")
+    .then(DebugCommands.database("myplugin.admin", storage))      // backend + schema version
+    .then(DebugCommands.integrations("myplugin.admin", StrataApi.hooks()))
+    .then(DebugCommands.scheduler("myplugin.admin"))              // Folia/Paper + thread info
+    .then(DebugCommands.dump("myplugin.admin", this)))            // diagnostics, plus `dump anonymize`
+```
+
+Strata registers its own `/strata` (alias `stratalib`) with these built in. Run `/strata debug dump`
+to see a snapshot, or `/strata debug integrations` to check which hooks resolved.
+
+<Callout type="info">
+  `toBrigadier()` exposes the raw `LiteralCommandNode` if you ever need to register it through Paper's
+  `Commands` registrar directly.
+</Callout>
