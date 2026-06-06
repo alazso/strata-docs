@@ -1,6 +1,6 @@
 ---
 title: "Text"
-description: "MiniMessage and PlaceholderAPI rendering, in the correct resolution order."
+description: "MiniMessage with PlaceholderAPI and MiniPlaceholders, in the correct resolution order."
 ---
 
 `TextRenderer` turns MiniMessage strings (with RGB, gradients, and PlaceholderAPI support) into
@@ -27,6 +27,23 @@ Component greeting = text.render("<gray>Welcome, <white>%player_name%", player);
 // Many lines at once:
 List<Component> lore = text.render(List.of("<red>Line one", "<gray>Line two"), player);
 ```
+
+## MiniPlaceholders
+
+When [MiniPlaceholders](https://github.com/MiniPlaceholders/MiniPlaceholders) is installed, its
+component-safe placeholders are added to every render automatically, so any consumer gets them for
+free with no extra setup:
+
+```java
+// <luckperms_prefix> and friends resolve as components, not raw strings:
+Component name = text.render("<luckperms_prefix><white><player_name></white>", player);
+```
+
+Global placeholders resolve everywhere. Audience-scoped placeholders resolve when a target audience
+is present in the render context. Unlike PlaceholderAPI's `%...%` placeholders, these are real
+MiniMessage tags, so their output is parsed as components and can never be reinterpreted as markup.
+When MiniPlaceholders is not installed, the tags are simply left unresolved and parsing proceeds
+unchanged.
 
 ## Custom tags
 

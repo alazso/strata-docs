@@ -30,6 +30,27 @@ if (eco.has(player, price)) eco.withdraw(player, price);
 The permission hook always answers `has(player, node)` (Bukkit-native), and richer providers add
 groups, prefix, and meta on top.
 
+## Granting groups and permissions
+
+`PermissionHook` also exposes write operations for reward-style use cases (a voucher that grants a
+rank, a temporary perk, or a single permission). The Bukkit baseline cannot persist permission data,
+so it returns `false`; LuckPerms performs and saves the change. These hit the permission store, so
+run them off the main thread.
+
+```java
+PermissionHook perms = StrataApi.hooks().get(PermissionHook.class);
+StrataApi.scheduler(plugin).async(() -> {
+    perms.addGroup(player, "vip");                          // permanent rank
+    perms.addTempGroup(player, "vip", Duration.ofDays(7));  // expiring rank
+    perms.setPermission(player, "myplugin.fly", true);      // single permission
+    perms.removeGroup(player, "trial");
+    perms.unsetPermission(player, "myplugin.fly");
+});
+```
+
+Each method returns `true` only when the data actually changed and was saved, and `false` (never an
+exception) when the provider cannot perform the write or the backing plugin is absent.
+
 ## Custom items across providers
 
 Custom items are provider-specific: an ItemsAdder item is not an Oraxen item. So unlike the other
