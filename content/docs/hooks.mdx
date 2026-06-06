@@ -24,11 +24,31 @@ if (eco.has(player, price)) eco.withdraw(player, price);
 | Permissions / groups | `PermissionHook` | Bukkit-native, LuckPerms |
 | Economy | `EconomyHook` | Vault (your own plugin can self-register) |
 | Regions | `RegionHook` | WorldGuard, claim plugins |
-| Custom items | `ItemHook` | Oraxen, ItemAdder |
+| Custom items | `ItemHook` | ItemsAdder, Oraxen, Nexo |
 | Holograms | `HologramHook` | DecentHolograms, FancyHolograms, CMI |
 
 The permission hook always answers `has(player, node)` (Bukkit-native), and richer providers add
 groups, prefix, and meta on top.
+
+## Custom items across providers
+
+Custom items are provider-specific: an ItemsAdder item is not an Oraxen item. So unlike the other
+capabilities, you resolve an item against **every** available `ItemHook` rather than a single best
+one. Use `all(ItemHook.class)` and take the first provider that recognizes the item or id.
+
+```java
+ItemStack icon = null;
+for (ItemHook items : StrataApi.hooks().all(ItemHook.class)) {
+    if (!items.isAvailable()) continue;
+    ItemStack made = items.createItem("ruby");   // provider's own id form
+    if (made != null) { icon = made; break; }
+}
+```
+
+Strata ships providers for ItemsAdder, Oraxen, and Nexo today. Adding another (MMOItems, EcoItems,
+ExecutableItems, MythicCrucible, HeadDatabase) is a new `ItemHook` registration, and the loop above
+keeps working unchanged. A provider whose plugin is absent reports `isAvailable()` as `false` and is
+skipped.
 
 ## Registering your own provider
 
