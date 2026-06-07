@@ -24,7 +24,7 @@ if (eco.has(player, price)) eco.withdraw(player, price);
 | Permissions / groups | `PermissionHook` | Bukkit-native, LuckPerms |
 | Economy | `EconomyHook` | Vault (your own plugin can self-register) |
 | Regions | `RegionHook` | WorldGuard, claim plugins |
-| Custom items | `ItemHook` | ItemsAdder, Oraxen, Nexo |
+| Custom items | `ItemHook` | ItemsAdder, Oraxen, Nexo, HeadDatabase |
 | Holograms | `HologramHook` | DecentHolograms, FancyHolograms, CMI |
 
 The permission hook always answers `has(player, node)` (Bukkit-native), and richer providers add
@@ -66,10 +66,11 @@ for (ItemHook items : StrataApi.hooks().all(ItemHook.class)) {
 }
 ```
 
-Strata ships providers for ItemsAdder, Oraxen, and Nexo today. Adding another (MMOItems, EcoItems,
-ExecutableItems, MythicCrucible, HeadDatabase) is a new `ItemHook` registration, and the loop above
-keeps working unchanged. A provider whose plugin is absent reports `isAvailable()` as `false` and is
-skipped.
+Strata ships providers for ItemsAdder, Oraxen, Nexo, and HeadDatabase (Arcaniax) today. HeadDatabase
+ids are numeric and may be written bare or prefixed (`hdb:7129` or `headdatabase:7129`) so a stored
+id routes unambiguously back to it. Adding another provider (MMOItems, EcoItems, ExecutableItems,
+MythicCrucible) is a new `ItemHook` registration, and the loop above keeps working unchanged. A
+provider whose plugin is absent reports `isAvailable()` as `false` and is skipped.
 
 ## Registering your own provider
 
