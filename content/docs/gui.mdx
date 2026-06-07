@@ -14,7 +14,7 @@ hotbar/offhand swaps, and double-click-collect can't move items), and drags into
 ItemStack icon = new ItemBuilder(Material.EMERALD).name("<b>Buy").glow(true).build();
 
 Gui gui = ChestGui.builder(3)
-    .title("<gradient:#34d399:#065f46>Shop")
+    .title("<gradient:#2f8f6f:#0b3d2e>Shop")
     .button(13, Button.of(icon, click -> {
         buy(click.getPlayer());
         return GuiAction.close().withSound(Sound.sound(Key.key("ui.button.click"), Source.MASTER, 1f, 1f));

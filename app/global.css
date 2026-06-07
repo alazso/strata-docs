@@ -2,29 +2,30 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
-/* ---- Strata brand palette (emerald green) ---- */
+/* ---- Strata brand palette ----
+   #0b3d2e deep green · #145a43 dark emerald · #2f8f6f emerald · #d7c7a1 sand · #0f0f0f near-black */
 @theme {
-  --color-fd-primary: hsl(155 68% 36%);
+  --color-fd-primary: hsl(160 50% 37%); /* #2f8f6f */
   --color-fd-primary-foreground: hsl(0 0% 100%);
-  --color-fd-ring: hsl(155 68% 36%);
-  --color-fd-accent: hsl(152 52% 95%);
-  --color-fd-accent-foreground: hsl(157 50% 22%);
-  --color-fd-background: hsl(150 35% 99%);
+  --color-fd-ring: hsl(160 50% 37%);
+  --color-fd-accent: hsl(160 44% 94%); /* light emerald wash */
+  --color-fd-accent-foreground: hsl(162 70% 14%); /* #0b3d2e */
+  --color-fd-background: hsl(150 30% 99%);
 }
 
 .dark {
-  --color-fd-primary: hsl(152 66% 52%);
-  --color-fd-primary-foreground: hsl(157 60% 9%);
-  --color-fd-ring: hsl(152 66% 52%);
-  --color-fd-accent: hsl(155 28% 16%);
-  --color-fd-accent-foreground: hsl(150 70% 88%);
-  --color-fd-background: hsl(156 25% 7%);
-  --color-fd-card: hsl(156 22% 9.5%);
-  --color-fd-popover: hsl(156 22% 9.5%);
-  --color-fd-secondary: hsl(156 18% 13%);
-  --color-fd-muted: hsl(156 16% 12%);
-  --color-fd-muted-foreground: hsl(150 10% 65%);
-  --color-fd-border: hsl(156 16% 17%);
+  --color-fd-primary: hsl(160 52% 47%); /* #2f8f6f, brightened for contrast on near-black */
+  --color-fd-primary-foreground: hsl(162 70% 8%);
+  --color-fd-ring: hsl(160 52% 47%);
+  --color-fd-accent: hsl(160 50% 13%); /* deep emerald surface (~#0b3d2e) */
+  --color-fd-accent-foreground: hsl(42 42% 82%); /* sand highlight (#d7c7a1) */
+  --color-fd-background: hsl(0 0% 6%); /* #0f0f0f */
+  --color-fd-card: hsl(160 18% 9%);
+  --color-fd-popover: hsl(160 18% 9%);
+  --color-fd-secondary: hsl(160 22% 13%);
+  --color-fd-muted: hsl(160 16% 11%);
+  --color-fd-muted-foreground: hsl(150 8% 64%);
+  --color-fd-border: hsl(160 16% 16%);
 }
 
 /* ---- Base (kept from scaffold) ---- */
@@ -51,7 +52,7 @@ h3 {
   background: color-mix(in srgb, var(--color-fd-primary) 28%, transparent);
 }
 
-/* Thin gradient accent bar pinned to the very top of every page (light to dark emerald) */
+/* Thin gradient accent bar pinned to the very top of every page (emerald through sand) */
 body::before {
   content: '';
   position: fixed;
@@ -59,9 +60,9 @@ body::before {
   height: 2px;
   background: linear-gradient(
     90deg,
-    hsl(150 76% 56%),
-    hsl(158 78% 27%),
-    hsl(150 76% 56%)
+    hsl(160 50% 42%),
+    hsl(42 45% 74%),
+    hsl(160 50% 42%)
   );
   z-index: 50;
   pointer-events: none;
@@ -77,9 +78,9 @@ body {
   background-repeat: no-repeat;
 }
 
-/* Reusable gradient text (light emerald to dark emerald), used by the nav wordmark and hero */
+/* Reusable gradient text (emerald to deep emerald), used by the nav wordmark and hero */
 .text-gradient {
-  background-image: linear-gradient(135deg, hsl(150 76% 56%), hsl(158 78% 27%));
+  background-image: linear-gradient(135deg, hsl(158 55% 50%), hsl(162 68% 22%));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
