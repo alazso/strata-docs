@@ -1,0 +1,32 @@
+---
+title: "Items"
+description: "Version-safe ItemStack serialization for rewards, kits, and GUI layouts."
+---
+
+`ItemSerialization` converts `ItemStack`s to and from a storable form, so you can persist reward
+items, kits, GUI layouts, and "give from hand" definitions. It is built on Paper's native item
+serialization, which embeds the data version and migrates older data forward on read, so saved items
+survive Minecraft upgrades.
+
+Use the byte forms for database `BLOB`/`bytea` columns and the Base64 forms for YAML or JSON config.
+
+```java
+// Single item:
+String encoded = ItemSerialization.toBase64(item);     // store in config
+ItemStack item = ItemSerialization.fromBase64(encoded); // read back
+
+byte[] bytes = ItemSerialization.toBytes(item);         // store in a BLOB column
+ItemStack again = ItemSerialization.fromBytes(bytes);
+
+// A whole inventory (order and empty slots preserved):
+String invEncoded = ItemSerialization.itemsToBase64(player.getInventory().getContents());
+ItemStack[] restored = ItemSerialization.itemsFromBase64(invEncoded);
+```
+
+The single-item and multi-item forms are distinct, so decode with the matching method. Malformed
+input throws `IllegalArgumentException`.
+
+<Callout type="info">
+  For player heads, prefer [`SkullBuilder`](/docs/skulls), which builds heads from textures, URLs,
+  names, or UUIDs. Use `ItemSerialization` when you need to persist an arbitrary, fully built item.
+</Callout>

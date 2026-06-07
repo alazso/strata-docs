@@ -62,7 +62,10 @@ EconomyHook eco = StrataApi.hooks().get(EconomyHook.class); // null-safe if abse
 | --- | --- |
 | **Scheduler** | Folia-safe wrapper over Region/Global/Async/Entity schedulers |
 | **Text** | MiniMessage plus PlaceholderAPI in the correct resolution order |
-| **Storage** | Pooled SQLite, MySQL, MariaDB, and PostgreSQL, a migration runner, optional Exposed/coroutines |
+| **Messages** | Per-plugin localized message catalog with auto-generated lang files |
+| **Storage** | Pooled SQLite, MySQL, MariaDB, and PostgreSQL, migrations, key-value stores, optional Exposed/coroutines |
+| **Players** | Async name/UUID resolution with an online and offline cache |
+| **Items** | Version-safe ItemStack serialization, plus a player-head builder |
 | **PDC** | Typed `PdcKey<P, C>` read/write over PersistentDataContainer |
 | **Config** | A schema validator with rich errors and deprecation warnings |
 | **Hooks** | Permission / Economy / Region / Item / Hologram behind one registry |

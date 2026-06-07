@@ -1,0 +1,61 @@
+---
+title: "Messages"
+description: "A per-plugin, localized message catalog rendered through MiniMessage and placeholders."
+---
+
+`MessageService` is a keyed message catalog for your plugin, in one or more locales, rendered through
+the shared [text renderer](/docs/text) (so MiniMessage, PlaceholderAPI, and MiniPlaceholders all
+apply). Players see messages in their own client language automatically, and admins edit a generated
+`lang/<locale>.yml` file without touching code. Get the catalog with `StrataApi.messages(plugin)`; the
+instance is cached per plugin.
+
+## Setup
+
+Register code defaults once in `onEnable`, then call `load()`. The defaults make the plugin work out
+of the box and seed the lang files.
+
+```java
+StrataApi.messages(this)
+    .defaultLocale(Locale.ENGLISH)
+    .defaults(Map.of(
+        "no-permission", "<red>You lack permission.",
+        "welcome",       "<green>Welcome, <white><player></white>!"))
+    .defaults(Locale.GERMAN, Map.of(
+        "no-permission", "<red>Keine Berechtigung.",
+        "welcome",       "<green>Willkommen, <white><player></white>!"))
+    .load();
+```
+
+`load()` writes `lang/en.yml` and `lang/de.yml` from the defaults, and on later updates it appends any
+new keys to existing files so admins always see the full set. Admin edits win over the code defaults.
+
+## Adding a locale
+
+A new language is just another `defaults(locale, ...)` call (or an admin dropping a `lang/<locale>.yml`
+file in place). There is no code to change at the call sites: every `send` and `get` already picks the
+viewer's locale, falling back to the language-only catalog and then the default locale.
+
+## Sending
+
+Send by key; the recipient's locale is resolved for you. Use Adventure tag resolvers for arguments.
+
+```java
+MessageService messages = StrataApi.messages(this);
+
+messages.send(player, "welcome", Placeholder.unparsed("player", player.getName()));
+messages.send(sender, "no-permission");                 // console gets the default locale
+messages.actionBar(player, "welcome", Placeholder.unparsed("player", player.getName()));
+messages.broadcast("welcome", Placeholder.unparsed("player", player.getName())); // each in their locale
+```
+
+Need the rendered component or the raw template instead of sending it?
+
+```java
+Component c = messages.get(player, "welcome", Placeholder.unparsed("player", name));
+String template = messages.raw(Locale.ENGLISH, "welcome");
+```
+
+<Callout type="info">
+  A missing key never throws: it renders a visible `missing message: <key>` marker and logs a warning
+  once, so gaps are obvious in testing but harmless in production.
+</Callout>

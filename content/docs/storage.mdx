@@ -31,8 +31,18 @@ pool thread, so they never freeze the server.
 ## Migrations
 
 Register `Migration`s (each is an increasing version with a plain-JDBC `up(Connection)`) and run
-them. Applied versions are tracked in a `strata_schema_version` table, and each migration runs in its
-own transaction.
+them. Applied versions are tracked in a per-provider `<namespace>_schema_version` table, and each
+migration runs in its own transaction.
+
+If several plugins point at the **same** database (a network on shared MySQL or PostgreSQL), give
+each provider its own namespace so their bookkeeping never collides:
+
+```java
+StorageConfig config = StorageConfig.mysql("localhost", 3306, "network", "user", "pass")
+    .withNamespace("provouchers"); // version table becomes provouchers_schema_version
+```
+
+The namespace defaults to `strata`, which is fine when a plugin owns its own database or SQLite file.
 
 ```java
 storage.migrations()
@@ -61,6 +71,27 @@ try (Connection c = storage.dataSource().getConnection();
 ```
 
 Do this on an async thread with `StrataApi.scheduler(plugin).async(...)`.
+
+## Key-value and per-player stores
+
+For small data that does not justify its own schema and migrations (settings, counters, flags), the
+provider offers two ready-made stores. Their tables are created on first use and namespaced per
+provider, and every operation runs off the main thread.
+
+```java
+KeyValueStore settings = storage.keyValue("settings");
+settings.put("spawn-protection", true);
+settings.getBoolean("spawn-protection", false).thenAccept(enabled -> { /* ... */ });
+
+PlayerDataStore profiles = storage.playerData("profiles");
+profiles.put(uuid, "kills", 5);
+profiles.getInt(uuid, "kills", 0).thenAccept(kills -> { /* ... */ });
+profiles.getAll(uuid).thenAccept(all -> { /* every key for this player */ });
+```
+
+Both expose string `get`/`put`/`delete` plus typed accessors (`getInt`, `getLong`, `getDouble`,
+`getBoolean`) that fall back to a default when a value is absent or unparseable. Writes use a portable
+upsert that works across every supported backend.
 
 ## Kotlin: Exposed and coroutines
 

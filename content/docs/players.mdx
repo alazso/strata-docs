@@ -1,0 +1,41 @@
+---
+title: "Players"
+description: "Resolve player names and UUIDs, online or offline, without blocking the server."
+---
+
+`PlayerLookup` resolves between player names and UUIDs, for online and offline players, without
+blocking the main thread. Get it from `StrataApi.players()`. It is the primitive behind features like
+"give to an offline player" or "look up who owns this" that every plugin otherwise reimplements.
+
+## Resolving
+
+The async methods check online players and a local cache first, then fall back to an off-thread Mojang
+lookup. They complete on a pool thread, so schedule any follow-up that touches the server back on the
+right thread.
+
+```java
+StrataApi.players().uuid("Notch").thenAccept(uuid -> {
+    if (uuid == null) return;            // unknown name
+    // back on the player's region/global thread before touching the world:
+    StrataApi.scheduler(plugin).global(() -> grantReward(uuid));
+});
+
+StrataApi.players().name(uuid).thenAccept(name -> { /* current name, or null */ });
+
+StrataApi.players().hasPlayedBefore(uuid).thenAccept(joined -> { /* reads player data off-thread */ });
+```
+
+## Cheap cache peeks
+
+When you only want what is already known (an online player or a prior lookup), the synchronous peeks
+never block and never hit the network:
+
+```java
+UUID maybe = StrataApi.players().cachedUuid("Notch"); // null if not cached
+String name = StrataApi.players().cachedName(uuid);   // null if not cached
+```
+
+<Callout type="info">
+  The cache is populated as players join and as lookups resolve, so repeated resolutions for active
+  players are instant. Unknown names or UUIDs complete with `null` rather than throwing.
+</Callout>
