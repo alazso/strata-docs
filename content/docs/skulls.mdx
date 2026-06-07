@@ -1,0 +1,58 @@
+---
+title: "Skulls"
+description: "Build player-head items from textures, URLs, names, and UUIDs, with no extra plugin."
+---
+
+`SkullBuilder` creates `PLAYER_HEAD` items from the four stable skull sources, without depending on
+any head plugin. It is plain vanilla skull creation built on Paper's profile API.
+
+## Synchronous sources (no network)
+
+A base64 texture value or a Minecraft texture URL produces a head immediately. The client fetches
+the image from Mojang's CDN, so no server-side network call is needed, and the head is immune to a
+player later changing their skin. These are the right choice for permanent icons and rewards.
+
+```java
+// From a base64 textures value (the eyJ0ZXh0dXJlcyI6... form):
+ItemStack head = SkullBuilder.fromTexture("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6...");
+
+// From a texture URL:
+ItemStack crown = SkullBuilder.fromUrl("http://textures.minecraft.net/texture/abc123...");
+```
+
+Identical textures produce identical, stackable heads. Sites like Minecraft-Heads give you these
+values to paste; you do not need a live API to use them.
+
+## Asynchronous sources (resolved from Mojang)
+
+A player name or UUID resolves that player's current skin from Mojang. This runs off the main
+thread and is cached, and the result reflects the player's skin at lookup time, so it suits dynamic
+"this player's head" displays rather than permanent icons.
+
+```java
+SkullBuilder.fromName("Notch").thenAccept(head -> {
+    // back on the main/region thread before touching inventories:
+    StrataApi.scheduler(plugin).global(() -> player.getInventory().addItem(head));
+});
+
+SkullBuilder.fromUuid(uuid).thenAccept(head -> { /* ... */ });
+```
+
+The returned `CompletableFuture` completes off the main thread. Schedule any inventory or entity work
+back on the correct thread yourself. A name or UUID that cannot be resolved completes with a blank
+head rather than failing. Failed lookups are not cached, so they can be retried.
+
+<Callout type="info">
+  Prefer `fromTexture` or `fromUrl` for anything persisted. Names and UUIDs are convenient but the
+  skin can change, and they cost a Mojang lookup. For custom heads from a head database, use the
+  [HeadDatabase hook](/docs/hooks) instead, which returns finished heads through the `ItemHook` path.
+</Callout>
+
+## Helper
+
+`base64FromUrl` returns the base64 `textures` value for a URL, which is what `fromTexture` and many
+configs expect:
+
+```java
+String texture = SkullBuilder.base64FromUrl("http://textures.minecraft.net/texture/abc123...");
+```
