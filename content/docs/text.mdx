@@ -45,6 +45,24 @@ MiniMessage tags, so their output is parsed as components and can never be reint
 When MiniPlaceholders is not installed, the tags are simply left unresolved and parsing proceeds
 unchanged.
 
+## Exposing your own placeholders
+
+The other half of the story: define your plugin's placeholders once and expose them through **both**
+PlaceholderAPI and MiniPlaceholders, with no per-backend boilerplate. The prefix is your plugin's
+name, so a key `balance` is reachable as `%plugin_balance%` and `<plugin_balance>`.
+
+```java
+StrataApi.placeholders(this)
+    .add("balance", player -> economy.format(economy.balance(player)))   // per-player
+    .addGlobal("online", () -> String.valueOf(Bukkit.getOnlinePlayers().size()))
+    .register();   // once, in onEnable
+```
+
+Each backend is wired only when it is installed, so this is safe whether or not PlaceholderAPI or
+MiniPlaceholders is present. A resolver that returns `null` yields no value. Values are inserted as
+plain text on the MiniPlaceholders (component) side, so style them where you render, not in the
+resolver. Call `unregister()` on disable if you need to tear them down.
+
 ## Custom tags
 
 Pass Adventure `TagResolver`s for one-off placeholders without registering anything:
