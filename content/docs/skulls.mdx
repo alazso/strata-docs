@@ -48,11 +48,18 @@ head rather than failing. Failed lookups are not cached, so they can be retried.
   [HeadDatabase hook](/docs/hooks) instead, which returns finished heads through the `ItemHook` path.
 </Callout>
 
-## Helper
+## Helpers
 
 `base64FromUrl` returns the base64 `textures` value for a URL, which is what `fromTexture` and many
 configs expect:
 
 ```java
 String texture = SkullBuilder.base64FromUrl("http://textures.minecraft.net/texture/abc123...");
+```
+
+`textureOf` is the inverse of `fromTexture`: it reads the base64 `textures` value back out of an
+existing head (or `null` if the item is not a textured head), so you can persist or compare it.
+
+```java
+String texture = SkullBuilder.textureOf(headItem);   // null if not a textured player head
 ```
